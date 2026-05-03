@@ -19,12 +19,13 @@
     </template>
     <template #footer>
       <Button 
-        label="Agregar al Catálogo" 
-        icon="pi pi-plus" 
+        :label="item.already_in_group ? 'Ya en el catálogo' : 'Agregar al Catálogo'" 
+        :icon="item.already_in_group ? 'pi pi-check' : 'pi pi-plus'" 
         class="w-full" 
-        severity="primary" 
+        :severity="item.already_in_group ? 'secondary' : 'primary'" 
         @click="$emit('add', item)" 
         :loading="loading"
+        :disabled="item.already_in_group"
       />
     </template>
   </Card>

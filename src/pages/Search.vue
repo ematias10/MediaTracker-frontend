@@ -45,7 +45,11 @@ import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import MediaCard from '../components/MediaCard.vue';
 import api from '../services/api'; 
-import { toast } from 'vue-sonner';
+import { useToast } from 'primevue/usetoast';
+import { useGroupStore } from '../stores/group';
+
+const toast = useToast();
+const groupStore = useGroupStore();
 
 const activeTab = ref(0);
 const items = ref([
@@ -81,7 +85,12 @@ const performSearch = async () => {
   
   try {
     const endpoint = activeTab.value === 0 ? '/search/music/' : '/search/movies/';
-    const response = await api.get(endpoint, { params: { q: searchQuery.value } });
+    const response = await api.get(endpoint, { 
+      params: { 
+        q: searchQuery.value,
+        group_id: groupStore.activeGroupId 
+      } 
+    });
     results.value = response.data;
     hasSearched.value = true;
   } catch (err) {
@@ -95,13 +104,23 @@ const performSearch = async () => {
 const addToCatalog = async (item) => {
   addingId.value = item.id;
   try {
-    const endpoint = activeTab.value === 0 ? '/catalog/music/' : '/catalog/movies/';
+    if (!groupStore.activeGroupId) {
+      toast.add({ severity: 'warn', summary: 'Aviso', detail: 'Selecciona un grupo primero.', life: 3000 });
+      return;
+    }
+    
+    const endpoint = activeTab.value === 0 
+      ? `/groups/${groupStore.activeGroupId}/albums/` 
+      : `/groups/${groupStore.activeGroupId}/movies/`;
+      
     const payload = activeTab.value === 0 ? { spotify_id: item.id } : { tmdb_id: item.id };
     
     await api.post(endpoint, payload);
-    toast.success('¡Agregado al catálogo exitosamente!');
+    toast.add({ severity: 'success', summary: 'Éxito', detail: '¡Agregado al catálogo del grupo!', life: 3000 });
+    // Refresh local state to disable button
+    item.already_in_group = true;
   } catch (err) {
-    toast.error('Error al agregar al catálogo: ' + (err.response?.data?.error || err.message));
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Error al agregar al catálogo: ' + (err.response?.data?.error || err.message), life: 5000 });
   } finally {
     addingId.value = null;
   }
